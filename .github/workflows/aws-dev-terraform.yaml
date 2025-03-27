@@ -230,7 +230,7 @@ jobs:
           cd "$WORKSPACE"
           terraform plan -out=tfplan
 
-      #- name: Change directory and Terraform Apply
-      #  run: |
-      #    cd "$WORKSPACE"
-      #    terraform apply --auto-approve
+      - name: Change directory and Terraform Apply
+        run: |
+          cd "$WORKSPACE"
+          terraform apply --auto-approve
