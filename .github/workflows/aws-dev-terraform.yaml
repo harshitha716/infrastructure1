@@ -47,6 +47,7 @@ on:
         options:
           - "zamp-ai-backend-terraform"
           - "zamp-ai-backend-terraform-dev"
+          - "zamp-ai-backend-terraform-demo"
       S3_KEY:
         description: "Terraform state file key"
         required: true
