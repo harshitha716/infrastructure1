@@ -1,0 +1,82 @@
+name: Terraform - Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      WORKSPACE:
+        description: "Workspace path"
+        required: true
+        type: choice
+        options:
+          - "terraform/aws/aws-base/uae"
+          - "willbeupdatedlater"
+
+jobs:
+  prepare-env:
+    name: Prepare Env
+    runs-on: ubuntu-latest
+    
+    outputs:
+      AWS_REGION: ${{ steps.vars.outputs.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ steps.vars.outputs.AWS_ACCOUNT_ID }}
+      
+    steps:
+      - id: vars
+        run: |
+          echo "AWS_REGION=me-central-1" >> $GITHUB_OUTPUT
+          echo "AWS_ACCOUNT_ID=916079538338" >> $GITHUB_OUTPUT
+          
+  Terraform:
+    needs:
+      - prepare-env
+    name: Terraform
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ needs.prepare-env.outputs.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}
+      
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: 'Set up AWS credentials using OIDC'
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}:role/InfrastructureRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession   
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0 
+
+      - name: Change directory and Configure Terraform backend with S3
+        run: |
+          WORKSPACE="${{ github.event.inputs.WORKSPACE }}"
+          cd "$WORKSPACE"
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket = "zamp-ai-backend-terraform"  # Your existing S3 bucket name
+              key    = "prd-uae/state/terraform.tfstate"  
+              region = "me-central-1"
+            }
+          }
+          EOF
+          terraform init
+
+      - name: Change directory and Validate Terraform configuration
+        run: |
+          WORKSPACE="${{ github.event.inputs.WORKSPACE }}"
+          cd "$WORKSPACE"
+          terraform validate
+
+      - name: Change directory and Terraform Plan
+        run: |
+          WORKSPACE="${{ github.event.inputs.WORKSPACE }}"
+          cd "$WORKSPACE"
+          terraform plan -out=tfplan

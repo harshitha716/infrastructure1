@@ -1,0 +1,100 @@
+name: Add Pubsub Topic
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        required: true
+        description: "Topic Name"
+      subscriptions:
+        required: true
+        description: "Subscription (If multiple subscriptions please provide them comma seperated"
+      dlq_enabled:
+        required: false
+        type: boolean
+        default: true
+        description: "Enable DLQ creation"
+      ack_deadline_seconds:
+        required: false
+        default: "600"
+        description: "ACK deadline seconds(range b/w 10 sec - 600 sec)"
+      enable_message_ordering:
+        required: false
+        type: boolean
+        default: true
+        description: "Enable message ordering"
+      enable_exactly_once_delivery:
+        required: false
+        type: boolean
+        default: true
+        description: "Enable exactly once delivery"
+      env:
+        required: true
+        description: "Environment"
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - dev
+        - stg
+        - prd
+env:
+  ENV: ${{ inputs.env }}
+  ENABLE_DLQ: ${{ inputs.dlq_enabled }}
+  ENABLE_MESSAGE_ORDERING: ${{ inputs.enable_message_ordering }}
+  ENABLE_EXACTLY_ONCE_DELIVERY: ${{ inputs.enable_exactly_once_delivery }}
+
+jobs:
+  setup-env:
+    runs-on: ubuntu-latest
+    name: Setup env
+    env: 
+      TOPIC: ${{ inputs.topic }}
+      SUBSCRIPTIONS: ${{ inputs.subscriptions }}
+      ACK_DEADLINE_SECONDS: ${{ inputs.ack_deadline_seconds }}
+    outputs:
+      TOPIC: ${{ steps.env.outputs.TOPIC }}
+      SUBSCRIPTIONS: ${{ steps.env.outputs.SUBSCRIPTIONS }}
+      ACK_DEADLINE_SECONDS: ${{ steps.env.outputs.ACK_DEADLINE_SECONDS }}
+    steps:
+      - name: Setup env vars
+        id: env
+        run: |
+          TOPIC=$(echo $TOPIC | sed 's/ //g')
+          SUBSCRIPTIONS=$(echo $SUBSCRIPTIONS | sed 's/ //g')
+          ACK_DEADLINE_SECONDS=$(echo $ACK_DEADLINE_SECONDS | sed 's/ //g')
+          echo "TOPIC=$TOPIC" >> $GITHUB_OUTPUT
+          echo "SUBSCRIPTIONS=$SUBSCRIPTIONS" >> $GITHUB_OUTPUT
+          if ((ACK_DEADLINE_SECONDS >= 10 && ACK_DEADLINE_SECONDS <= 600 )) ; then
+            echo "ACK_DEADLINE_SECONDS=$ACK_DEADLINE_SECONDS" >> $GITHUB_OUTPUT
+          else
+            echo "Value of acknowledgement deadline seconds should be between 10 and 600"
+            exit 1  
+          fi
+  add-pst:
+    runs-on: ubuntu-latest
+    needs: 
+      - setup-env
+    name: Add Pubsub Topic
+    env:
+      TOPIC: ${{ needs.setup-env.outputs.TOPIC }}
+      SUBSCRIPTIONS: ${{ needs.setup-env.outputs.SUBSCRIPTIONS }}
+      ACK_DEADLINE_SECONDS: ${{ needs.setup-env.outputs.ACK_DEADLINE_SECONDS }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Run topic creation python script
+        run: |
+          pip install pyyaml
+          python scripts/tf-automation/add-pubsub.py
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "tf/add:pubsub topic ${{ env.TOPIC }}"
+          branch: "tf/pubsub-${{ env.TOPIC }}"
+          title: 'tf/add: Pubsub topic ${{ env.TOPIC }}'
+          body: "### Change Log \n - Added pubsub topic ${{ env.TOPIC }}"
+          base: main

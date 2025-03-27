@@ -1,0 +1,118 @@
+name: Deploy cluster components
+
+on:
+  workflow_dispatch:
+    inputs:
+      HELM_RELEASE:
+        description: "chart to be deployed"
+        required: true
+        type: choice
+        options:
+          - "cert-manager"
+          - "external-secrets"
+          - "grafana"
+          - "traefik"
+          - "metrics-server"
+          - "prometheus"
+          - "windmill"
+          - "elasticsearch"
+          - "fluentd"
+          - "kibana"
+      NAMESPACE:
+        description: "Namespace"
+        required: true
+        type: choice
+        options:
+          - "kube-system"
+          - "windmill"
+          - "monitoring"
+      TEMPLATES_PATH:
+        description: "Templates Path"
+        required: true
+        type: choice
+        options:
+          - "cert-manager/charts/cert-manager"
+          - "external-secrets"
+          - "grafana"
+          - "traefik/charts/traefik"
+          - "metrics-server"
+          - "prometheus"
+          - "windmill"
+          - "elasticsearch"
+          - "fluentd"
+          - "kibana"
+      VALUES_FILE:
+        description: "Values File"
+        required: true
+        type: choice
+        options:
+          - "values.yaml"
+          - "charts/cert-manager/values.yaml --set installCRDs=true"
+          - "charts/traefik/values.yaml"
+
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  prepare-env:
+    name: Prepare Env
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      AWS_REGION: ${{ steps.vars.outputs.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ steps.vars.outputs.AWS_ACCOUNT_ID }}
+      EKS_CLUSTER: ${{ steps.vars.outputs.EKS_CLUSTER }}
+    steps:
+      - id: vars
+        run: |
+          echo "AWS_REGION=me-central-1" >> $GITHUB_OUTPUT
+          echo "AWS_ACCOUNT_ID=916079538338" >> $GITHUB_OUTPUT
+          echo "EKS_CLUSTER=zamp-prd-uae-cluster" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    timeout-minutes: 15
+    needs:
+      - prepare-env
+    env:
+      AWS_REGION: ${{ needs.prepare-env.outputs.AWS_REGION }}
+      EKS_CLUSTER: ${{ needs.prepare-env.outputs.EKS_CLUSTER }}
+      AWS_ACCOUNT_ID: ${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}
+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: 'Set up AWS credentials using OIDC'
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}:role/InfrastructureRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession
+
+      - name: "Set up kubectl"
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+
+      - name: "Install Helm"
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.9.0"
+
+      - name: Install or Upgrade Helm chart
+        run: |
+          HELM_RELEASE="${{ github.event.inputs.HELM_RELEASE }}"
+          NAMESPACE="${{ github.event.inputs.NAMESPACE }}"
+          VALUES_FILE="${{ github.event.inputs.VALUES_FILE }}"
+          TEMPLATES_PATH="${{ github.event.inputs.TEMPLATES_PATH }}"
+          echo "Helm Release: $HELM_RELEASE"
+          helm upgrade --install "$HELM_RELEASE" ./k8s-aws/"$TEMPLATES_PATH" \
+            --namespace "$NAMESPACE" \
+            -f ./k8s-aws/"$HELM_RELEASE"/"$VALUES_FILE"

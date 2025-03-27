@@ -1,0 +1,293 @@
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false 
+  name: payment
+  subscriptions:
+  - payment
+  - payment-view
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: payout
+  subscriptions:
+  - payout
+  - payout-view
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: banking
+  subscriptions:
+  - banking
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: crypto-credit-transaction
+  subscriptions:
+  - crypto-credit-transaction
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: order
+  subscriptions:
+  - order
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: fiat-credit-transaction
+  subscriptions:
+  - fiat-credit-transaction
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: high-priority-notification
+  subscriptions:
+  - high-priority-notification
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: bulk-payout
+  subscriptions:
+  - bulk-payout
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: operations
+  subscriptions:
+  - operations
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: cards
+  subscriptions:
+  - cards
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: beneficiary
+  subscriptions:
+  - beneficiary
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: user-activity
+  subscriptions:
+  - home-page-compute
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: erp
+  subscriptions:
+  - erp
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: monetary-transaction
+  subscriptions:
+  - erp-transaction-transformation
+  - monetary-transaction-communication
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: reports
+  subscriptions:
+  - reports
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: bulk-payout-v1-api
+  subscriptions:
+  - bulk-payout-v1-api
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: tms-bulk-payouts
+  subscriptions:
+  - tms-bulk-payouts
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: tms-payout-request
+  subscriptions:
+  - tms-payout-request
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: true
+  name: generic-events
+  subscriptions:
+  - workflow-generic-events
+  - tagging-generic-events
+  - recon-executed-generic-events
+  - account-generic-events
+  - transaction-generic-events
+  - transaction-seeded-forecasting-events
+  - cashops-bank-balance-generic-events
+  - datasheet-config-management
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: internal-transfer
+  subscriptions:
+  - internal-transfer
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false
+  name: audit-logs
+  subscriptions:
+  - audit-logs
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: bulk-manage-resource-tag-mappings
+  subscriptions:
+  - bulk-manage-resource-tag-mappings-events
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: reconciliation
+  subscriptions:
+  - reconciliation
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: forecasting-events
+  subscriptions:
+  - daily-forecast-events
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: file-import-events
+  subscriptions:
+  - file-import-events
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: bulk-tag-updated
+  subscriptions:
+  - bulk-tag-mappings-updated-forecast-compute
+  - bulk-tag-mappings-updated-analytics-compute
+  - bulk-tag-mappings-updated-funds-in-transit-compute
+  - bulk-tag-mappings-updated-fixed-deposit-creation
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: bulk-actions
+  subscriptions:
+  - bulk-actions
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: bulk-action-tasks
+  subscriptions:
+  - bulk-action-tasks
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: seed-cashops-bank-transactions
+  subscriptions:
+  - seed-cashops-bank-transactions
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: export-data
+  subscriptions:
+  - export-data
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: partner-webhook
+  subscriptions:
+  - partner-webhook
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: forecasting-response-events
+  subscriptions:
+  - daily-forecast-response-events
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: funds-in-transit
+  subscriptions:
+  - funds-in-transit-aggregation
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: fileimport-ai-transformation
+  subscriptions:
+  - fileimport-ai-transformation
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  retry_enabled: false  
+  name: forecasting-external-file-processing
+  subscriptions:
+  - forecasting-external-file-processing

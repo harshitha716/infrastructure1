@@ -1,0 +1,29 @@
+- name: "zamp-analytics-cron-kybdetails"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-kyb"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-b2busers"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-corridors"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-merchantconfigurations"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-merchants"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-payoutsessions"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-quotes"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-usermerchantrelations"
+  namespace: "analytics"
+
+- name: "zamp-analytics-cron-referentialuuidmappings"
+  namespace: "analytics"

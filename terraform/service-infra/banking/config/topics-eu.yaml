@@ -1,0 +1,143 @@
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: payment-eu
+  subscriptions:
+  - payment-eu
+  - payment-view-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: payout-eu
+  subscriptions:
+  - payout-eu
+  - payout-view-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: banking-eu
+  subscriptions:
+  - banking-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: crypto-credit-transaction-eu
+  subscriptions:
+  - crypto-credit-transaction-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: order-eu
+  subscriptions:
+  - order-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: fiat-credit-transaction-eu
+  subscriptions:
+  - fiat-credit-transaction-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: high-priority-notification-eu
+  subscriptions:
+  - high-priority-notification-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: bulk-payout-eu
+  subscriptions:
+  - bulk-payout-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: operations-eu
+  subscriptions:
+  - operations-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: cards-eu
+  subscriptions:
+  - cards-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: beneficiary-eu
+  subscriptions:
+  - beneficiary-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: user-activity-eu
+  subscriptions:
+  - home-page-compute-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: erp-eu
+  subscriptions:
+  - erp-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: monetary-transaction-eu
+  subscriptions:
+  - erp-transaction-transformation-eu
+  - monetary-transaction-communication-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: reports-eu
+  subscriptions:
+  - reports-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: bulk-payout-v1-api-eu
+  subscriptions:
+  - bulk-payout-v1-api-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: tms-bulk-payouts-eu
+  subscriptions:
+  - tms-bulk-payouts-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: tms-payout-request-eu
+  subscriptions:
+  - tms-payout-request-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: generic-events-eu
+  subscriptions:
+  - workflow-generic-events-eu
+- ack_deadline_seconds: 600
+  dlq_enabled: true
+  enable_exactly_once_delivery: true
+  enable_message_ordering: true
+  name: internal-transfer-eu
+  subscriptions:
+  - internal-transfer-eu

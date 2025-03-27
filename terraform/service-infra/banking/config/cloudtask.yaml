@@ -1,0 +1,53 @@
+- name               : "transactions-queue"
+  region             : "${region}"
+  max_retry_duration : "3600s"
+
+- name               : "webhook-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"
+
+- name               : "payment-discovery-queue"
+  region             : "${region}"
+  sampling_ratio     : 1
+  max_retry_duration : "3600s"
+
+- name               : "expiry-queue"
+  region             : "${region}"
+  max_retry_duration : "3600s"
+
+- name               : "ephemeral-wallet-queue"
+  region             : "${region}"
+  max_retry_duration : "3600s"
+
+- name               : "kyc-discovery-queue"
+  region             : "${region}"
+  max_retry_duration : "3600s"
+
+- name               : "trade-report-queue"
+  region             : "${region}"
+  max_retry_duration : "3600s"
+
+- name               : "tms-webhook-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"
+  max_concurrent_dispatches : 50
+  max_dispatches_per_second : 100
+  
+
+- name               : "bank-bridge-webhooks-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"
+  max_concurrent_dispatches : 50
+  max_dispatches_per_second : 100
+
+- name               : "payout-partner-file-response-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"
+
+- name               : "risk-exposure-alerts-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"
+
+- name               : "bank-bridge-sync-transaction-queue"
+  region             : "${region}"
+  max_retry_duration : "86400s"

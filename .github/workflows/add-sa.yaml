@@ -1,0 +1,65 @@
+name: Add Service Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        required: true
+        description: "Service account name"
+      namespace:
+        required: true
+        description: "Service account namespace"
+      env:
+        required: true
+        description: "Environment"
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - dev
+        - stg
+        - prd
+env:
+  ENV: ${{ inputs.env }}
+
+jobs:
+  setup-env:
+    runs-on: ubuntu-latest
+    name: Setup env
+    env: 
+      NAME: ${{ inputs.name }}
+      NAMESPACE: ${{ inputs.namespace }}
+    outputs:
+      NAME: ${{ steps.env.outputs.NAME }}
+      NAMESPACE: ${{ steps.env.outputs.NAMESPACE }}
+    steps:
+      - name: Setup env vars
+        id: env
+        run: |
+          NAME=$(echo $NAME | sed 's/ //g')
+          NAMESPACE=$(echo $NAMESPACE | sed 's/ //g')
+          echo "NAME=$NAME" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+  add-sa:
+    runs-on: ubuntu-latest
+    name: Add Service Account
+    needs:
+    - setup-env
+    env:
+      NAME: ${{ needs.setup-env.outputs.NAME }}
+      NAMESPACE: ${{ needs.setup-env.outputs.NAMESPACE }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          pip install pyyaml
+          python scripts/tf-automation/add-sa.py
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "tf/add:service account ${{ env.NAME }}"
+          branch: "tf/sa-${{ env.NAME }}"
+          title: "tf/add: Service account ${{ env.NAME }}"
+          body: "### Change Log \n - Added service account ${{ env.NAME }} as workload identity user to banking service account"
+          base: main

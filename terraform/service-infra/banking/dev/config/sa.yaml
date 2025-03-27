@@ -1,0 +1,5 @@
+- name: "zamp-banking-ht-svc"
+  namespace: "zamp"
+
+- name: "zamp-banking-ht-stable-svc"
+  namespace: "zamp"

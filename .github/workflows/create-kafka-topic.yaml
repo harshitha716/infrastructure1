@@ -1,0 +1,87 @@
+name: Create Kafka Topic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    paths:
+    - 'k8s/application/**/*'
+
+jobs:
+  create-kafka-topic:
+    strategy:
+      matrix:
+        environment: [dev, stg, prd]
+    name: Create topic on ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
+    steps:
+      - id: vars
+        run: |
+            if [ $ENVIRONMENT == "prd" ]; then
+            echo "::set-output name=GOOGLE_CREDENTIALS::PRD_GOOGLE_CREDENTIALS"
+            echo "::set-output name=GCP_REGION::asia-southeast1"
+            echo "::set-output name=GCP_PROJECT_ID::production-351109"
+            echo "::set-output name=BUILD_ENV::prd"
+            echo "::set-output name=PROJECT_PREFIX::zamp-prd-sg"
+            echo "::set-output name=K8S_CLUSTER::zamp-prd-sg-gke-cluster"
+            echo "::set-output name=K8S_NAMESPACE::kafka"
+            elif [ $ENVIRONMENT == "stg" ]; then
+            echo "::set-output name=GOOGLE_CREDENTIALS::STG_GOOGLE_CREDENTIALS"
+            echo "::set-output name=GCP_REGION::asia-southeast1"
+            echo "::set-output name=GCP_PROJECT_ID::staging-351109"
+            echo "::set-output name=BUILD_ENV::stg"
+            echo "::set-output name=PROJECT_PREFIX::zamp-stg-sg"
+            echo "::set-output name=K8S_CLUSTER::zamp-stg-sg-gke-cluster"
+            echo "::set-output name=K8S_NAMESPACE::kafka"
+            elif [ $ENVIRONMENT == "dev" ]; then
+            echo "::set-output name=GOOGLE_CREDENTIALS::DEV_GOOGLE_CREDENTIALS"
+            echo "::set-output name=GCP_REGION::asia-southeast1"
+            echo "::set-output name=GCP_PROJECT_ID::development-351109"
+            echo "::set-output name=BUILD_ENV::dev"
+            echo "::set-output name=PROJECT_PREFIX::zamp-dev-sg"
+            echo "::set-output name=K8S_CLUSTER::zamp-dev-sg-gke-cluster"
+            echo "::set-output name=K8S_NAMESPACE::kafka"
+            fi
+
+      - name: 'Checkout repository on : ${{ github.REF }}'
+        uses: actions/checkout@v2
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        env:
+          GOOGLE_CREDENTIALS : ${{steps.vars.outputs.GOOGLE_CREDENTIALS}}
+          GCP_REGION : ${{steps.vars.outputs.GCP_REGION}}
+          GCP_PROJECT_ID: ${{steps.vars.outputs.GCP_PROJECT_ID}}
+          PROJECT_PREFIX : ${{steps.vars.outputs.PROJECT_PREFIX}}
+        with:
+          credentials_json: '${{ secrets[env.GOOGLE_CREDENTIALS] }}'
+          token_format: 'access_token'
+
+      - name: GKE config
+        id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v0'
+        env:
+          GCP_REGION: ${{ steps.vars.outputs.GCP_REGION }}
+          K8S_CLUSTER: ${{ steps.vars.outputs.K8S_CLUSTER }}
+        with:
+          cluster_name: '${{ env.K8S_CLUSTER }}'
+          location: '${{ env.GCP_REGION }}'
+
+      - uses: azure/setup-kubectl@v2.0
+        name: Install kubectl
+        with:
+          version: 'v1.22.0'
+
+      - name: Create topic
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          K8S_NAMESPACE: ${{ steps.vars.outputs.K8S_NAMESPACE }}
+        run: |
+          echo "Creating topics "
+          kubectl apply -k k8s/application/banking/overlays/$ENVIRONMENT/ -n $K8S_NAMESPACE
+

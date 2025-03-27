@@ -1,0 +1,39 @@
+name: PR Merge Time Analysis
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"  # Runs daily at midnight
+
+jobs:
+  analyze-pr-merge-time:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch PR Data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr list --state merged --limit 100 --json number,createdAt,mergedAt > prs.json
+
+      - name: Calculate Average Merge Time
+        run: |
+          echo "Calculating PR merge times..."
+          jq -r '.[] | .createdAt + " " + .mergedAt' prs.json | awk '
+          {
+            created = mktime(gensub(/[-T:Z]/, " ", "g", $1));
+            merged = mktime(gensub(/[-T:Z]/, " ", "g", $2));
+            total_time += (merged - created);
+            count++;
+          }
+          END {
+            if (count > 0) {
+              avg_time = total_time / count / 3600;
+              print "Average Merge Time: " avg_time " hours";
+              print "::set-output name=avg_merge_time::" avg_time;
+            } else {
+              print "No merged PRs found.";
+            }
+          }'

@@ -1,0 +1,55 @@
+name: Publish helm chart
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    paths:
+    - 'helm-charts/zamp-chart/**'
+    - '.github/workflows/push-helm-chart.yaml'
+jobs:
+  push-chart:
+    name: Publish HelmChart
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    timeout-minutes: 15
+    env:
+      GCP_REGION : "asia-southeast1"
+      PROJECT_PREFIX: zamp-dev-sg
+      HELM_CHART_NAME: zamp-svc
+      HELM_REPOSITORY: zamp-dev-sg-helm-repository
+
+    steps:
+    - name: 'Checkout repository on : ${{ github.REF }}'
+      uses: actions/checkout@v2
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: 'projects/622745278345/locations/global/workloadIdentityPools/github-oidc-pool/providers/github-provider'
+        service_account: 'github-action-sa@development-351109.iam.gserviceaccount.com'
+    
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v0'
+
+    - uses: azure/setup-helm@v1
+      name: Install Helm
+      with:
+        version: 'v3.7.2' 
+    - name: Install helm gcs plugin
+      run: |
+        helm plugin install https://github.com/hayorov/helm-gcs.git --version 0.4.1
+        helm plugin update gcs
+    - name: Push helm chart to gcs
+      run: |
+        LOCAL_HELM_REPOSITORY="zamp-repo"
+        helm gcs init gs://${HELM_REPOSITORY}/${HELM_CHART_NAME}
+        helm repo add ${LOCAL_HELM_REPOSITORY} gs://${HELM_REPOSITORY}/${HELM_CHART_NAME}
+        # Packaging Zamp Service Chart
+        HELM_PACKAGE=$(helm package helm-charts/zamp-chart | awk -F\\/ '{print $NF}')
+        echo "Pushing $HELM_PACKAGE"
+        helm gcs push --force $HELM_PACKAGE $LOCAL_HELM_REPOSITORY

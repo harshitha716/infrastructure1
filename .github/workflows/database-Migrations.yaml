@@ -1,0 +1,161 @@
+
+name: Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Migration operation (up or down)'
+        required: true
+        default: 'up'
+        type: choice
+        options:
+          - up
+          - down
+      steps:
+        description: 'Number of steps to apply (leave empty for all available)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  prepare-env:
+    name: Prepare Environment
+    runs-on: ubuntu-latest
+    outputs:
+      GCP_PROJECT_ID_PRD: ${{ steps.vars.outputs.GCP_PROJECT_ID_PRD }}
+      GCP_PROJECT_ID_STG: ${{ steps.vars.outputs.GCP_PROJECT_ID_STG }}
+      GCP_REGION: ${{ steps.vars.outputs.GCP_REGION }}
+      SPANNER_INSTANCE_PRD: ${{ steps.vars.outputs.SPANNER_INSTANCE_PRD }}
+      SPANNER_INSTANCE_STG: ${{ steps.vars.outputs.SPANNER_INSTANCE_STG }}
+      SPANNER_DATABASE_STG: ${{ steps.vars.outputs.SPANNER_DATABASE_STG }}
+      SPANNER_DATABASE_PRD: ${{ steps.vars.outputs.SPANNER_DATABASE_PRD }}
+      GCP_WORKLOAD_IDENTITY_SA_STG: ${{ steps.vars.outputs.GCP_WORKLOAD_IDENTITY_SA_STG }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER_STG: ${{ steps.vars.outputs.GCP_WORKLOAD_IDENTITY_PROVIDER_STG }}
+      GCP_WORKLOAD_IDENTITY_SA_PRD: ${{ steps.vars.outputs.GCP_WORKLOAD_IDENTITY_SA_PRD }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER_PRD: ${{ steps.vars.outputs.GCP_WORKLOAD_IDENTITY_PROVIDER_PRD }}
+      
+    steps:
+    - id: vars
+      run: |
+          echo "GCP_PROJECT_ID_PRD=production-351109" >> $GITHUB_OUTPUT
+          echo "GCP_PROJECT_ID_STG=staging-351109" >> $GITHUB_OUTPUT
+          echo "GCP_REGION=asia-southeast1" >> $GITHUB_OUTPUT
+          echo "SPANNER_INSTANCE_PRD=zamp-prd-sg-cloudspanner" >> $GITHUB_OUTPUT
+          echo "SPANNER_INSTANCE_STG=zamp-stg-sg-cloudspanner" >> $GITHUB_OUTPUT
+          echo "SPANNER_DATABASE_STG=banking" >> $GITHUB_OUTPUT
+          echo "SPANNER_DATABASE_PRD=banking" >> $GITHUB_OUTPUT
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_STG=projects/321085961264/locations/global/workloadIdentityPools/github-oidc-pool/providers/github-provider" >> $GITHUB_OUTPUT
+          echo "GCP_WORKLOAD_IDENTITY_SA_STG=github-action-sa@staging-351109.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_PRD=projects/518036456173/locations/global/workloadIdentityPools/github-oidc-pool/providers/github-provider" >> $GITHUB_OUTPUT
+          echo "GCP_WORKLOAD_IDENTITY_SA_PRD=github-action-sa@production-351109.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
+
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: prepare-env
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      GCP_REGION: ${{ needs.prepare-env.outputs.GCP_REGION }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER_STG : ${{needs.prepare-env.outputs.GCP_WORKLOAD_IDENTITY_PROVIDER_STG}}
+      GCP_WORKLOAD_IDENTITY_SA_STG : ${{needs.prepare-env.outputs.GCP_WORKLOAD_IDENTITY_SA_STG}}
+    steps:
+    - name: 'Checkout repository'
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: '${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER_STG }}'
+        service_account: '${{ env.GCP_WORKLOAD_IDENTITY_SA_STG }}'
+
+    - name: Install golang-migrate
+      run: |
+        curl -L https://github.com/golang-migrate/migrate/releases/download/v4.15.2/migrate.linux-amd64.tar.gz | tar xvz
+        sudo mv migrate /usr/local/bin/
+
+    - name: Validate Spanner Connection (Staging)
+      id: validate-staging
+      env:
+        GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_STG }}
+        SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_STG }}
+        SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_STG }}
+      run: |
+        gcloud config set project $GCP_PROJECT_ID
+        gcloud spanner databases describe $SPANNER_DATABASE --instance=$SPANNER_INSTANCE
+        echo "Successfully connected to staging database: $SPANNER_DATABASE"
+
+
+    # - name: Check Current Migration Version
+    #   id: check-version
+    #   env:
+    #     GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_STG }}
+    #     SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_STG }}
+    #     SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_STG }}
+    #   run: |
+    #     current_version=$(migrate -path ./migrations -database spanner://projects/${GCP_PROJECT_ID}/instances/${SPANNER_INSTANCE}/databases/${SPANNER_DATABASE} version)
+    #     echo "Current migration version: $current_version"
+
+    #     # Check if the output contains '(dirty)'
+    #     if [[ "$current_version" == *"(dirty)"* ]]; then
+    #       echo "Database is in a dirty state"
+    #       echo "force=true" >> $GITHUB_ENV
+    #     else
+    #       echo "Database is clean"
+    #     fi
+
+    # - name: Force Migration Version Fix if Dirty
+    #   if: env.force == 'true'
+    #   env:
+    #     GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_STG }}
+    #     SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_STG }}
+    #     SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_STG }}
+    #   run: |
+    #     # Get the most recent migration version (or you can also pass the exact version number)
+    #     latest_version=$(migrate -path ./migrations -database spanner://projects/${GCP_PROJECT_ID}/instances/${SPANNER_INSTANCE}/databases/${SPANNER_DATABASE} version 2>&1 | tr -dc '0-9\n')
+    #     echo "Forcing migration to version $latest_version"
+    #     migrate -path ./migrations -database spanner://projects/${GCP_PROJECT_ID}/instances/${SPANNER_INSTANCE}/databases/${SPANNER_DATABASE} force $latest_version
+    #     echo "Forced migration to version $latest_version"
+
+
+    - name: Run Migrations on Staging
+      env:
+        GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_STG }}
+        SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_STG }}
+        SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_STG }}
+      run: |
+        migrate -path ./migrations -database spanner://projects/${GCP_PROJECT_ID}/instances/${SPANNER_INSTANCE}/databases/${SPANNER_DATABASE} ${{ github.event.inputs.operation }} ${{ github.event.inputs.steps }}
+        echo "Successfully ran migrations on staging database: $SPANNER_DATABASE"
+
+    - name: Authenticate to Google Cloud (Production)
+      id: auth-prd
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: '${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER_PRD }}'
+        service_account: '${{ env.GCP_WORKLOAD_IDENTITY_SA_PRD }}'
+
+    - name: Validate Spanner Connection (Production)
+      id: validate-production
+      env:
+        GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_PRD }}
+        SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_PRD }}
+        SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_PRD }}
+      if: success() # Only run if staging migration is successful
+      run: |
+        gcloud config set project $GCP_PROJECT_ID
+        gcloud spanner databases describe $SPANNER_DATABASE --instance=$SPANNER_INSTANCE
+        echo "Successfully connected to production database: $SPANNER_DATABASE"
+
+    - name: Run Migrations on Production
+      env:
+        GCP_PROJECT_ID: ${{ needs.prepare-env.outputs.GCP_PROJECT_ID_PRD }}
+        SPANNER_INSTANCE: ${{ needs.prepare-env.outputs.SPANNER_INSTANCE_PRD }}
+        SPANNER_DATABASE: ${{ needs.prepare-env.outputs.SPANNER_DATABASE_PRD }}
+      if: success() # Only run if staging validation is successful
+      run: |
+        migrate -path ./migrations -database spanner://${GCP_PROJECT_ID}/${SPANNER_INSTANCE}/${SPANNER_DATABASE} ${{ github.event.inputs.operation }} ${{ github.event.inputs.steps }}
