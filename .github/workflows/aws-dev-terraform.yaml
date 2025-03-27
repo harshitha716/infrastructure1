@@ -37,6 +37,7 @@ on:
         options:
           - "terraform/aws/aws-base/uae"
           - "terraform/aws/aws-base/dev"
+          - "terraform/aws/aws-base/devus"
           - "terraform/aws/aws-service/uae"
       S3_BUCKET:
         description: "S3 Bucket for Terraform Backend"
