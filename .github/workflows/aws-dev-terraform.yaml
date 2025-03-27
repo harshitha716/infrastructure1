@@ -81,8 +81,8 @@ jobs:
             echo "AWS_ACCOUNT_ID=123456789" >> $GITHUB_ENV  # Replace with actual Stage AWS Account ID
             echo "::set-output name=AWS_ACCOUNT_ID::123456789"
           else
-            echo "AWS_ACCOUNT_ID=0123456789" >> $GITHUB_ENV  # Replace with actual Dev AWS Account ID
-            echo "::set-output name=AWS_ACCOUNT_ID::913524915637"
+            echo "AWS_ACCOUNT_ID=920207782794" >> $GITHUB_ENV  # Replace with actual Dev AWS Account ID
+            echo "::set-output name=AWS_ACCOUNT_ID::920207782794"
           fi
       
       - name: Print selected values
