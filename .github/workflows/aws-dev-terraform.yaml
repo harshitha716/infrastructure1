@@ -164,10 +164,10 @@ jobs:
           cd "$WORKSPACE"
           terraform plan -target="module.oidc" -out=tfplan
 
-      #- name: Change directory and Terraform Apply
-      #  run: |
-      #    cd "$WORKSPACE"
-      #    terraform apply -target="module.oidc" --auto-approve
+      - name: Change directory and Terraform Apply
+        run: |
+          cd "$WORKSPACE"
+          terraform apply -target="module.oidc" --auto-approve
 
   Terraform_Infra:
     needs:
