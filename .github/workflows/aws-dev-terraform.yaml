@@ -1,0 +1,229 @@
+name: AWS Terraform - Plan and Apply 
+
+on:
+  workflow_dispatch:
+    inputs:
+      #BRANCH:
+      #  description: "Branch name"
+      #  required: true
+      #  default: "main"
+      #  type: choice
+      #  options:
+      #    - "main"
+      #    - "uae"
+      #    - "terraform-pipeline"
+      ENVIRONMENT:
+        description: "Deployment Environment (dev/stage/prod)"
+        required: true
+        default: "prod"
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+      AWS_REGION:
+        description: "AWS region to deploy infra"
+        required: true
+        default: "me-central-1"
+        type: choice
+        options:
+          - "me-central-1"
+          - "us-east-1"
+      WORKSPACE:
+        description: "Workspace path for Application service and Base infra"
+        required: true
+        default: "terraform/aws/aws-base/uae"
+        type: choice
+        options:
+          - "terraform/aws/aws-base/uae"
+          - "terraform/aws/aws-base/dev"
+          - "terraform/aws/aws-service/uae"
+      S3_BUCKET:
+        description: "S3 Bucket for Terraform Backend"
+        required: true
+        default: "zamp-ai-backend-terraform"
+        type: choice
+        options:
+          - "zamp-ai-backend-terraform"
+          - "zamp-ai-backend-terraform-dev"
+      S3_KEY:
+        description: "Terraform state file key"
+        required: true
+        default: "prd-uae/state/terraform.tfstate"
+        type: choice
+        options:
+          - "prd-uae/state/terraform.tfstate"
+          - "dev/state/terraform.tfstate"
+
+jobs:
+  prepare-env:
+    name: Prepare Env
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.event.inputs.BRANCH }}
+      ENVIRONMENT: ${{ github.event.inputs.ENVIRONMENT }}
+      AWS_REGION: ${{ github.event.inputs.AWS_REGION }}
+      WORKSPACE: ${{ github.event.inputs.WORKSPACE }}
+      S3_BUCKET: ${{ github.event.inputs.S3_BUCKET }}
+      S3_KEY: ${{ github.event.inputs.S3_KEY }}
+    
+    outputs:
+      AWS_ACCOUNT_ID: ${{ steps.set-account.outputs.AWS_ACCOUNT_ID }}
+      
+    steps:
+      - name: Determine AWS AccountID based on environment
+        id: set-account
+        run: |
+          if [[ "$ENVIRONMENT" == "prod" ]]; then
+            echo "AWS_ACCOUNT_ID=916079538338" >> $GITHUB_ENV  # Replace with actual Prod AWS Account ID
+            echo "::set-output name=AWS_ACCOUNT_ID::916079538338"
+          elif [[ "$ENVIRONMENT" == "stage" ]]; then
+            echo "AWS_ACCOUNT_ID=123456789" >> $GITHUB_ENV  # Replace with actual Stage AWS Account ID
+            echo "::set-output name=AWS_ACCOUNT_ID::123456789"
+          else
+            echo "AWS_ACCOUNT_ID=0123456789" >> $GITHUB_ENV  # Replace with actual Dev AWS Account ID
+            echo "::set-output name=AWS_ACCOUNT_ID::913524915637"
+          fi
+      
+      - name: Print selected values
+        run: |
+          echo "Branch: $BRANCH"
+          echo "Environment: $ENVIRONMENT"
+          echo "AWS Region: $AWS_REGION"
+          echo "Workspace: $WORKSPACE"
+          echo "S3 Bucket: $S3_BUCKET"
+          echo "S3 Key: $S3_KEY"
+          echo "AWS Account ID: $AWS_ACCOUNT_ID"
+          
+  Terraform_OIDC:
+    needs:
+      - prepare-env
+    name: Terraform OIDC
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    environment: Approval Pending
+    env:
+      BRANCH: ${{ github.event.inputs.Branch }}
+      AWS_ACCOUNT_ID: ${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}
+      ENVIRONMENT: ${{ github.event.inputs.ENVIRONMENT }}
+      AWS_REGION: ${{ github.event.inputs.AWS_REGION }}
+      WORKSPACE: ${{ github.event.inputs.WORKSPACE }}
+      S3_BUCKET: ${{ github.event.inputs.S3_BUCKET }}
+      S3_KEY: ${{ github.event.inputs.S3_KEY }}
+      
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main           #${{ github.event.inputs.BRANCH }}
+
+      - name: Configure AWS Credentials (Temporary for Bootstrapping)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0 
+
+      - name: Change directory and Configure Terraform backend with S3
+        run: |
+          cd "$WORKSPACE"
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket = "$S3_BUCKET"
+              key    = "$S3_KEY"   
+              region = "$AWS_REGION"
+            }
+          }
+          EOF
+          terraform init
+
+      - name: Change directory and Validate Terraform configuration
+        run: |
+          cd "$WORKSPACE"
+          terraform validate
+
+      - name: Change directory and Terraform Plan
+        run: |
+          cd "$WORKSPACE"
+          terraform plan -target="module.oidc" -out=tfplan
+
+      #- name: Change directory and Terraform Apply
+      #  run: |
+      #    cd "$WORKSPACE"
+      #    terraform apply -target="module.oidc" --auto-approve
+
+  Terraform_Infra:
+    needs:
+      - prepare-env
+      - Terraform_OIDC
+    name: Terraform Infra
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.event.inputs.Branch }}
+      AWS_ACCOUNT_ID: ${{ needs.prepare-env.outputs.AWS_ACCOUNT_ID }}
+      ENVIRONMENT: ${{ github.event.inputs.ENVIRONMENT }}
+      AWS_REGION: ${{ github.event.inputs.AWS_REGION }}
+      WORKSPACE: ${{ github.event.inputs.WORKSPACE }}
+      S3_BUCKET: ${{ github.event.inputs.S3_BUCKET }}
+      S3_KEY: ${{ github.event.inputs.S3_KEY }}
+      
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main           #${{ github.event.inputs.BRANCH }}
+
+      - name: 'Set up AWS credentials using OIDC'
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/InfrastructureRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession   
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0 
+
+      - name: Change directory and Configure Terraform backend with S3
+        run: |
+          cd "$WORKSPACE"
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket = "$S3_BUCKET"
+              key    = "$S3_KEY"   
+              region = "$AWS_REGION"
+            }
+          }
+          EOF
+          terraform init
+
+      - name: Change directory and Validate Terraform configuration
+        run: |
+          cd "$WORKSPACE"
+          terraform validate
+
+      - name: Change directory and Terraform Plan
+        run: |
+          cd "$WORKSPACE"
+          terraform plan -out=tfplan
+
+      #- name: Change directory and Terraform Apply
+      #  run: |
+      #    cd "$WORKSPACE"
+      #    terraform apply --auto-approve
