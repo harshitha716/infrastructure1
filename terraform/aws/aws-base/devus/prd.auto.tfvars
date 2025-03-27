@@ -5,9 +5,9 @@ service = {
 }
 
 region = "us-east-1"
-aws_account_id = "842675998483"
+aws_account_id = "920207782794"
 
-github_repository  = ["Zampfi/pantheon", "Zampfi/infrastructure"]  
+github_repository  = ["harshitha716/infrastructure1"]  
 role_name    = "GitHubActionsRole"
 terraform_oidc_policy = "AdministratorAccess"
 
